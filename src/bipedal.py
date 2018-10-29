@@ -82,9 +82,10 @@ class Policy():
         
         # step for every theta (direction)
         step = np.zeros(self.theta.shape)
+        n_best_deltas = len(rollouts)
         for r_pos, r_neg, delta in rollouts:
             step += (r_pos - r_neg) * delta
-        self.theta += lr / (self.hp.num_best_deltas * sigma_rewards) * step
+        self.theta += lr / (n_best_deltas * sigma_rewards) * step
 
 class Model():
     def __init__(self):
@@ -105,7 +106,7 @@ class Model():
         self.env = wrappers.Monitor(self.env, monitor_dir, 
             video_callable=should_record, force=True)
 
-    def normalizer(self, normalizer):
+    def set_normalizer(self, normalizer):
         self.normalizer = normalizer
 
     # Explore the policy on one specific direction and over one episode
@@ -153,7 +154,7 @@ class Model():
             if step % self.video_freq == 0:
                 self.record_video = True
             # Play an episode with the new weights and print the score
-            reward_evaluation = self.explore()
+            reward_evaluation = self.explore(noise)
             print('Step: ', step, 'Reward: ', reward_evaluation)
             self.record_video = False
 
@@ -191,7 +192,7 @@ if __name__ == '__main__':
     input_size = model.env.observation_space.shape[0]
     output_size=model.env.action_space.shape[0]
     model.policy = Policy(input_size=input_size, output_size=output_size)
-    model.normalizer(Normalizer(n_inputs=input_size))
+    model.set_normalizer(Normalizer(n_inputs=input_size))
     # model.normalizer = Normalizer(n_inputs=input_size)
     model.train(n_steps=hyperparams['n_steps'], 
         n_deltas=hyperparams['n_deltas'], 
