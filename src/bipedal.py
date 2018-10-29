@@ -1,3 +1,6 @@
+# Credit to Colin Skow
+# Adapted code from https://github.com/colinskow/move37/blob/master/ars/ars.py
+
 import gym
 from gym import wrappers
 import numpy as np
