@@ -87,11 +87,10 @@ class Policy():
         self.theta += lr / (self.hp.num_best_deltas * sigma_rewards) * step
 
 class Model():
-    def __init__(normalizer=None):
+    def __init__(self):
+        pass
 
-        self.normalizer = normalizer or Normalizer(self.input_size)
-
-    def env(self, env, video_freq, monitor_dir):
+    def make_env(self, env, video_freq, monitor_dir):
         """Set Gym Environment
         
         Args:
@@ -104,6 +103,9 @@ class Model():
 
         self.env = wrappers.Monitor(self.env, monitor_dir, 
             video_callable=should_record, force=True)
+
+    def normalizer(self, normalizer):
+        self.normalizer = normalizer
 
     # Explore the policy on one specific direction and over one episode
     def explore(self, noise, direction=None, delta=None):
@@ -180,15 +182,16 @@ if __name__ == '__main__':
     if not os.path.exists(monitor_dir):
         os.makedirs(monitor_dir)
 
-    model = Model(normalizer=Normalizer())
+    model = Model()
     # set environment
-    model.env(ENV_NAME, 
+    model.make_env(ENV_NAME, 
         video_freq=hyperparams['video_freq'], 
         monitor_dir=monitor_dir)
     input_size = model.env.observation_space.shape[0]
     output_size=model.env.action_space.shape[0]
     model.policy = Policy(input_size=input_size, output_size=output_size)
-    model.normalizer = Normalizer(n_inputs=input_size)
+    model.normalizer(Normalizer(n_inputs=input_size))
+    # model.normalizer = Normalizer(n_inputs=input_size)
     model.train(n_steps=hyperparams['n_steps'], 
         n_deltas=hyperparams['n_deltas'], 
         n_best_deltas=hyperparams['n_best_deltas'], 
