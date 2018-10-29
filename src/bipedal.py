@@ -107,6 +107,7 @@ class Policy():
         self.theta += lr / (n_best_deltas * sigma_rewards) * step
 
 class Model():
+    """Training Model for agent."""
     def __init__(self):
         pass
 
@@ -115,6 +116,8 @@ class Model():
         
         Args:
             env(str): OpenAI Gym environment name.
+            video_freq(int): How often (step frequency) to record video.
+            monitor_dir(str): Directory to write log and video files to.
         """
 
         self.env = gym.make(env)
@@ -126,10 +129,22 @@ class Model():
             video_callable=should_record, force=True)
 
     def set_normalizer(self, normalizer):
+        """Set Normalizer class to use for input normalizing."""
         self.normalizer = normalizer
 
     # Explore the policy on one specific direction and over one episode
     def explore(self, noise, direction=None, delta=None):
+        """
+        Run episode as exploration.
+
+        Args:
+            noise(float): Amount of delta distortion to add to weights.
+            direction(str in ('-', '+') or None): Direction of next exploration.
+            delta(list of floats): Relative step size (multiplied with noise) during gradient descent.
+
+        Returns:
+            Sum of rewards collected during episode.
+        """
         state = self.env.reset()
         done = False
         num_plays = 0
@@ -145,6 +160,17 @@ class Model():
         return sum_rewards
 
     def train(self, n_steps, n_deltas, n_best_deltas, noise, episode_length, lr):
+        """
+        Train agent.
+
+        Args:
+            n_steps(int): Number of episodes.
+            n_deltas(int): Number of deltas to use per episode.
+            n_best_deltas(int): Number of best deltas to use for policy update.
+            noise(float): Amount of delta distortion to add to weights.
+            episode_length(int): Maximum number of actions to perform during an episode.
+            lr(float): Learning rate of model.
+        """
         self.episode_length = episode_length
         self.noise = noise
         for step in range(n_steps):
