@@ -100,6 +100,7 @@ class Model():
         self.env = gym.make(env)
         self.video_freq = video_freq
         should_record = lambda i: self.record_video
+        self.record_video = False
 
         self.env = wrappers.Monitor(self.env, monitor_dir, 
             video_callable=should_record, force=True)
@@ -123,7 +124,7 @@ class Model():
             num_plays += 1
         return sum_rewards
 
-    def train(self, n_steps, n_deltas, episode_length, lr):
+    def train(self, n_steps, n_deltas, n_best_deltas, noise, episode_length, lr):
         self.episode_length = episode_length
         self.noise = noise
         for step in range(n_steps):
@@ -195,6 +196,7 @@ if __name__ == '__main__':
     model.train(n_steps=hyperparams['n_steps'], 
         n_deltas=hyperparams['n_deltas'], 
         n_best_deltas=hyperparams['n_best_deltas'], 
+        noise=hyperparams['noise'], 
         episode_length=hyperparams['episode_length'], 
         lr=hyperparams['lr'])
 
