@@ -119,26 +119,9 @@ class Policy():
         self.theta += lr / (self.hp.num_best_deltas * sigma_rewards) * step
 
 class Model():
-    def __init__(self,
-                 hp=None,
-                 input_size=None,
-                 output_size=None,
-                 normalizer=None,
-                 policy=None,
-                 monitor_dir=None):
+    def __init__(normalizer=None):
 
-        self.hp = hp or Hp()
-        np.random.seed(self.hp.seed)
-        self.env = gym.make(self.hp.env_name)
-        if monitor_dir is not None:
-            should_record = lambda i: self.record_video
-            self.env = wrappers.Monitor(self.env, monitor_dir, video_callable=should_record, force=True)
-        self.hp.episode_length = self.env.spec.timestep_limit or self.hp.episode_length
-        self.input_size = input_size or self.env.observation_space.shape[0]
-        self.output_size = output_size or self.env.action_space.shape[0]
         self.normalizer = normalizer or Normalizer(self.input_size)
-        self.policy = policy or Policy(self.input_size, self.output_size, self.hp)
-        self.record_video = False
 
     def env(self, env, video_freq, monitor_dir):
         """Set Gym Environment
