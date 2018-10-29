@@ -1,4 +1,6 @@
 import gym
+from gym import wrappers
+import numpy as np
 import os
 
 
@@ -36,11 +38,11 @@ class Hp():
 
 class Normalizer():
     # Normalizes the inputs
-    def __init__(self, nb_inputs):
-        self.n = np.zeros(nb_inputs)
-        self.mean = np.zeros(nb_inputs)
-        self.mean_diff = np.zeros(nb_inputs)
-        self.var = np.zeros(nb_inputs)
+    def __init__(self, n_inputs):
+        self.n = np.zeros(n_inputs)
+        self.mean = np.zeros(n_inputs)
+        self.mean_diff = np.zeros(n_inputs)
+        self.var = np.zeros(n_inputs)
 
     def observe(self, x):
         self.n += 1.0
@@ -64,7 +66,7 @@ class Policy():
     """
 
     def __init__(self, input_size, output_size):
-        self.theta.np.zeros((output_size, input_size))
+        self.theta = np.zeros((output_size, input_size))
 
     def evaluate(self, input, noise, delta=None, direction=None):
         """
@@ -88,17 +90,17 @@ class Policy():
         elif direction == "-":
             return (self.theta - noise * delta).dot(input)
         
-    def sample_deltas(self, num_deltas):
+    def sample_deltas(self, n_deltas):
         """Sample random delta values from normal distribution for each input weight.
 
         Args:
-            num_deltas(int): Number of deltas to sample for each input weight.
+            n_deltas(int): Number of deltas to sample for each input weight.
         
         Returns:
             List of lists of floats.
         """
 
-        return [np.random.randn(*self.theta.shape) for _ in range(num_deltas)]
+        return [np.random.randn(*self.theta.shape) for _ in range(n_deltas)]
 
     def update(self, rollouts, lr, sigma_rewards):
         """
@@ -138,56 +140,63 @@ class Model():
         self.policy = policy or Policy(self.input_size, self.output_size, self.hp)
         self.record_video = False
 
-    def env(self, env):
-        """Define Gym Environment
+    def env(self, env, video_freq, monitor_dir):
+        """Set Gym Environment
         
         Args:
             env(str): OpenAI Gym environment name.
         """
 
         self.env = gym.make(env)
+        self.video_freq = video_freq
+        should_record = lambda i: self.record_video
+
+        self.env = wrappers.Monitor(self.env, monitor_dir, 
+            video_callable=should_record, force=True)
 
     # Explore the policy on one specific direction and over one episode
-    def explore(self, direction=None, delta=None):
+    def explore(self, noise, direction=None, delta=None):
         state = self.env.reset()
         done = False
         num_plays = 0
         sum_rewards = 0.0
-        while not done and num_plays < self.hp.episode_length:
+        while not done and num_plays < self.episode_length:
             self.normalizer.observe(state)
             state = self.normalizer.normalize(state)
-            action = self.policy.evaluate(state, delta, direction)
+            action = self.policy.evaluate(state, noise, delta, direction)
             state, reward, done, _ = self.env.step(action)
             reward = max(min(reward, 1), -1)
             sum_rewards += reward
             num_plays += 1
         return sum_rewards
 
-    def train(self, n_steps):
+    def train(self, n_steps, n_deltas, episode_length, lr):
+        self.episode_length = episode_length
+        self.noise = noise
         for step in range(n_steps):
             # initialize the random noise deltas and the positive/negative rewards
-            deltas = self.policy.sample_deltas()
-            positive_rewards = [0] * self.hp.num_deltas
-            negative_rewards = [0] * self.hp.num_deltas
+            deltas = self.policy.sample_deltas(n_deltas=n_deltas)
+            positive_rewards = [0] * n_deltas
+            negative_rewards = [0] * n_deltas
 
             # play an episode each with positive deltas and negative deltas, collect rewards
-            for k in range(self.hp.num_deltas):
-                positive_rewards[k] = self.explore(direction="+", delta=deltas[k])
-                negative_rewards[k] = self.explore(direction="-", delta=deltas[k])
+            for k in range(n_deltas):
+                positive_rewards[k] = self.explore(noise, direction="+", delta=deltas[k])
+                negative_rewards[k] = self.explore(noise, direction="-", delta=deltas[k])
                 
             # Compute the standard deviation of all rewards
             sigma_rewards = np.array(positive_rewards + negative_rewards).std()
 
             # Sort the rollouts by the max(r_pos, r_neg) and select the deltas with best rewards
             scores = {k:max(r_pos, r_neg) for k,(r_pos,r_neg) in enumerate(zip(positive_rewards, negative_rewards))}
-            order = sorted(scores.keys(), key = lambda x:scores[x], reverse = True)[:self.hp.num_best_deltas]
+            order = sorted(scores.keys(), key = lambda x:scores[x], reverse = True)[:n_best_deltas]
             rollouts = [(positive_rewards[k], negative_rewards[k], deltas[k]) for k in order]
 
             # Update the policy
-            self.policy.update(rollouts, sigma_rewards)
+            self.policy.update(rollouts, lr, sigma_rewards)
 
             # Only record video during evaluation, every n steps
-            if step % self.hp.record_every == 0:
+            if step % self.video_freq == 0:
                 self.record_video = True
             # Play an episode with the new weights and print the score
             reward_evaluation = self.explore()
@@ -211,7 +220,7 @@ if __name__ == '__main__':
         'noise': 0.03, 
         'seed': 42, 
         'env_name': ENV_NAME, 
-        'log_freq': 50
+        'video_freq': 50
     }
 
     # create video directories
@@ -220,8 +229,19 @@ if __name__ == '__main__':
     if not os.path.exists(monitor_dir):
         os.makedirs(video_dir)
 
-    model = Model()
-    model.env(ENV_NAME)
-    model.train()
+    model = Model(normalizer=Normalizer())
+    # set environment
+    model.env(ENV_NAME, 
+        video_freq=hyperparams['video_freq'], 
+        monitor_dir=monitor_dir)
+    input_size = model.env.observation_space.shape[0]
+    output_size=model.env.action_space.shape[0]
+    model.policy = Policy(input_size=input_size, output_size=output_size)
+    model.normalizer = Normalizer(n_inputs=input_size)
+    model.train(n_steps=hyperparams['n_steps'], 
+        n_deltas=hyperparams['n_deltas'], 
+        n_best_deltas=hyperparams['n_best_deltas'], 
+        episode_length=hyperparams['episode_length'], 
+        lr=hyperparams['lr'])
 
     
