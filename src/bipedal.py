@@ -6,14 +6,7 @@ class Agent():
     def __init__(self):
         
 
-    def env(self, env):
-        """Define Gym Environment
-        
-        Args:
-            env(str): OpenAI Gym environment name.
-        """
-
-        self.env = gym.make(ENV_NAME)
+   
 
 
 class Hp():
@@ -145,6 +138,15 @@ class Model():
         self.policy = policy or Policy(self.input_size, self.output_size, self.hp)
         self.record_video = False
 
+    def env(self, env):
+        """Define Gym Environment
+        
+        Args:
+            env(str): OpenAI Gym environment name.
+        """
+
+        self.env = gym.make(env)
+
     # Explore the policy on one specific direction and over one episode
     def explore(self, direction=None, delta=None):
         state = self.env.reset()
@@ -161,8 +163,8 @@ class Model():
             num_plays += 1
         return sum_rewards
 
-    def train(self):
-        for step in range(self.hp.nb_steps):
+    def train(self, n_steps):
+        for step in range(n_steps):
             # initialize the random noise deltas and the positive/negative rewards
             deltas = self.policy.sample_deltas()
             positive_rewards = [0] * self.hp.num_deltas
@@ -219,6 +221,7 @@ if __name__ == '__main__':
         os.makedirs(video_dir)
 
     model = Model()
+    model.env(ENV_NAME)
     model.train()
 
     
