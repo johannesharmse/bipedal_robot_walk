@@ -162,7 +162,7 @@ if __name__ == '__main__':
     # openAI gym environment
     ENV_NAME = 'BipedalWalker-v2'
     # video directories
-    video_dir = './additional/videos'
+    video_dir = '../additional/videos'
     monitor_dir = os.path.join(video_dir, ENV_NAME)
 
     # hyperparameters fro training
