@@ -159,7 +159,7 @@ if __name__ == '__main__':
     ENV_NAME = 'BipedalWalker-v2'
     # video directories
     video_dir = './additional/videos'
-    monitor_dir = video_dir + ENV_NAME
+    monitor_dir = os.path.join(video_dir, ENV_NAME)
 
     # hyperparameters fro training
     hyperparams = {
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     if not os.path.exists(video_dir):
         os.makedirs(video_dir)
     if not os.path.exists(monitor_dir):
-        os.makedirs(video_dir)
+        os.makedirs(monitor_dir)
 
     model = Model(normalizer=Normalizer())
     # set environment
