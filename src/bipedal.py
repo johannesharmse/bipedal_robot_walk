@@ -206,22 +206,10 @@ class Model():
 if __name__ == '__main__':
     # openAI gym environment
     ENV_NAME = 'BipedalWalker-v2'
+    
     # video directories
     video_dir = '../additional/videos'
     monitor_dir = os.path.join(video_dir, ENV_NAME)
-
-    # hyperparameters fro training
-    hyperparams = {
-        'n_steps': 1000, 
-        'episode_length': 2000, 
-        'lr': 0.01, 
-        'n_deltas': 16, 
-        'n_best_deltas': 16, 
-        'noise': 0.03, 
-        'seed': 42, 
-        'env_name': ENV_NAME, 
-        'video_freq': 50
-    }
 
     # create video directories
     if not os.path.exists(video_dir):
@@ -229,16 +217,36 @@ if __name__ == '__main__':
     if not os.path.exists(monitor_dir):
         os.makedirs(monitor_dir)
 
+    # hyperparameters for training
+    hyperparams = {
+        'n_steps': 1000, 
+        'episode_length': 2000, 
+        'lr': 0.01, 
+        'n_deltas': 16, 
+        'n_best_deltas': 16, 
+        'noise': 0.03, 
+        'video_freq': 50
+    }
+
+    # init model
     model = Model()
-    # set environment
+
+    # set environment and record params
     model.make_env(ENV_NAME, 
         video_freq=hyperparams['video_freq'], 
         monitor_dir=monitor_dir)
+    
+    # define input and output layer sizes
     input_size = model.env.observation_space.shape[0]
     output_size=model.env.action_space.shape[0]
+
+    # initialize policy to use for training
     model.policy = Policy(input_size=input_size, output_size=output_size)
+
+    # specify normalizing method to use
     model.set_normalizer(Normalizer(n_inputs=input_size))
-    # model.normalizer = Normalizer(n_inputs=input_size)
+
+    # train model
     model.train(n_steps=hyperparams['n_steps'], 
         n_deltas=hyperparams['n_deltas'], 
         n_best_deltas=hyperparams['n_best_deltas'], 
