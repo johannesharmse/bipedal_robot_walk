@@ -5,7 +5,11 @@ import os
 
 
 class Normalizer():
-    # Normalizes the inputs
+    """Normalize input values.
+    Args:
+        n_inputs: Number of input values
+    """
+
     def __init__(self, n_inputs):
         self.n = np.zeros(n_inputs)
         self.mean = np.zeros(n_inputs)
@@ -13,6 +17,12 @@ class Normalizer():
         self.var = np.zeros(n_inputs)
 
     def observe(self, x):
+        """
+        Update mean and variance values based on observation values.
+
+        Args:
+            x(Numpy array): Observed value
+        """
         self.n += 1.0
         last_mean = self.mean.copy()
         self.mean += (x - self.mean) / self.n
@@ -20,6 +30,15 @@ class Normalizer():
         self.var = (self.mean_diff / self.n).clip(min = 1e-2)
 
     def normalize(self, inputs):
+        """
+        Normalize input values.
+
+        Args:
+            inputs(list of floats): Input values to normalize.
+
+        Returns:
+            Normalized input values with same shape and `inputs`.
+        """
         obs_mean = self.mean
         obs_std = np.sqrt(self.var)
         return (inputs - obs_mean) / obs_std
